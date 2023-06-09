@@ -1,7 +1,19 @@
-import config
 import json
 import pika
 import traceback
+
+def notify_manager(toolname, parameters):
+    connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+    manager = connection.channel()
+    manager.queue_declare(queue="TOOL_CHANNEL")
+    message = encode_manager_message(toolname, parameters)
+
+    manager.basic_publish(exchange='',
+                      routing_key="TOOL_CHANNEL",
+                      body=message)
+    #print(message)
+    manager.close()
+    
 
 
 #Consume bot messages
@@ -12,25 +24,23 @@ def consume(channel):
     method, properties, body = tool_channel.basic_get(queue=channel, auto_ack=True)
     tool_channel.close()
     if body:
-        bot_channel, command, parameters = decode_message(body)
-        return bot_channel, command, parameters
+        parameters = decode_message(body)
+        return parameters
     else:
-        return None, None, None
+        return None
 
 def decode_message(message):
     try:
         message = message.decode("utf-8")
-        print(f"DECODING: {message}")
+        print(f"TOOL - DECODING: {message}")
         message_dict = json.loads(message)
 
-        bot_channel = message_dict.get('bot_channel')
-        command = message_dict.get('command')
         parameters = message_dict.get('parameters')
         
-        return bot_channel, command, parameters
+        return parameters
     except Exception as e:
         traceback.print_exc()
-        
+        return "prompt", f"error: {e}", None
 
 def publish(message, channel):
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
@@ -39,7 +49,7 @@ def publish(message, channel):
     publish_channel.basic_publish(exchange='',
                       routing_key=channel,
                       body=message)
-    print(message)
+    #print(message)
     publish_channel.close()
 
 def encode_message(message):
@@ -47,6 +57,15 @@ def encode_message(message):
     response = {
         "message": message
     }
-    print(f"ENCODING: {response}")
+    print(f"TOOL - ENCODING: {response}")
     return json.dumps(response)
 
+
+def encode_manager_message(command, parameters):
+    #actions = [action.__dict__ for action in actions] if actions else []
+    response = {
+        "command": command,
+        "parameters": parameters
+    }
+    print(f"TOOL - ENCODING: {response}")
+    return json.dumps(response)

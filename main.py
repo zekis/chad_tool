@@ -5,6 +5,7 @@ import threading
 from tool_manager import process_requests
 
 async def listener():
+    print("CHAD Tool Manager - Running\n")
     while True:
         process_requests()
         await asyncio.sleep(0.5)
