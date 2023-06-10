@@ -15,7 +15,7 @@ def publish_to_manager(bot_channel, command, parameters=None):
     #print(message)
     publish_channel.close()
 
-def publish_to_tool(command_channel, bot_channel, toolname, parameters):
+def publish_to_tool(command_channel, toolname, parameters):
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
     message = encode_tool_message(parameters)
 
@@ -34,7 +34,7 @@ def encode_manager_message(bot_channel, command, parameters=None):
         "command": command,
         "parameters": parameters
     }
-    print(f"ENCODING: {response}")
+    print(f"TESTER ENCODING: {response}")
     return json.dumps(response)
 
 def encode_tool_message(parameters):
@@ -42,36 +42,66 @@ def encode_tool_message(parameters):
     response = {
         "parameters": parameters
     }
-    print(f"ENCODING: {response}")
+    print(f"TESTER ENCODING: {response}")
     return json.dumps(response)
 
 if __name__ == "__main__":
     bot_channel = "test"
-    command_channel = f"CMD:{bot_channel}"
-    response_channel = f"RES:{bot_channel}"
     
+    # command_channel = f"CMD:{toolname}:{bot_channel}"
+    # response_channel = f"RES:{toolname}:{bot_channel}"
     
-    command = "NEW_TOOL"
-    parameters = {'toolname': 'filewriter', 'description': 'write content to a file', 'parameters': ['filename', 'content']}
+    # command = "NEW_TOOL"
+    # toolname = 'filereader'
+    # parameters = {'toolname': toolname, 'description': 'read content from a file', 'parameters': ['filename']}
+    # publish_to_manager(bot_channel, command, parameters)
+
+    # command = "NEW_TOOL"
+    # toolname = 'filewriter'
+    # parameters = {'toolname': toolname, 'description': 'write content to a file', 'parameters': ['filename', 'content']}
+    # publish_to_manager(bot_channel, command, parameters)
+
+    # command = "NEW_TOOL"
+    # toolname = 'listfiles'
+    # parameters = {'toolname': toolname, 'description': 'list the files in the specified folder', 'parameters': ['folder']}
+    # publish_to_manager(bot_channel, command, parameters)
+    command = "TUNE_TOOL"
+    toolname = 'filereader'
+    parameters = {'toolname': toolname, 'feedback': "successful test will return hello world from test.txt"}
     publish_to_manager(bot_channel, command, parameters)
 
-    command = "GET_TOOLS"
-    publish_to_manager(bot_channel, command)
 
-
-    command = "START_TOOL"
-    parameters = {'toolname': 'filewriter'}
+    command = "TEST_TOOL"
+    toolname = 'filereader'
+    parameters = {'toolname': toolname}
     publish_to_manager(bot_channel, command, parameters)
 
-    time.sleep(2)
-    toolname = 'filewriter'
-    parameters = {'filename': 'test.txt', 'content': 'hello world'}
-    publish_to_tool(command_channel, response_channel, toolname, parameters)
+    # command = "GET_TOOLS"
+    # publish_to_manager(bot_channel, command)
 
-    time.sleep(2)
 
-    command = "STOP_TOOL"
-    parameters = {'toolname': 'filewriter'}
-    publish_to_manager(bot_channel, command, parameters)
+    # command = "START_TOOL"
+    # parameters = {'toolname': toolname}
+    # publish_to_manager(bot_channel, command, parameters)
+
+    # time.sleep(2)
+    # parameters = {'folder': 'tools'}
+    # publish_to_tool(command_channel, toolname, parameters)
+
+    # time.sleep(5)
+
+    # command = "EDIT_TOOL"
+    # changes = "import os"
+    # parameters = {'toolname': toolname, 'description': 'list the files in the specified folder', 'parameters': ['folder'], 'changes': changes}
+    # publish_to_manager(bot_channel, command, parameters)
+
+    # time.sleep(10)
+    # parameters = {'folder': 'tools'}
+    # publish_to_tool(command_channel, toolname, parameters)
+
+    # time.sleep(5)
+    # command = "STOP_TOOL"
+    # parameters = {'toolname': 'filereader'}
+    # publish_to_manager(bot_channel, command, parameters)
 
 

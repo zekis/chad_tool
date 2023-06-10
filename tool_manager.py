@@ -8,7 +8,10 @@ tool_registry = ToolRegistry()
 firstscan = True
 
 def initialise():
-    tool_registry.load_tools(config.DATA_DIR)
+    tool_registry.load_tools()
+    #setup base tools
+    print(tool_registry.to_json())
+
 
 def process_requests():
     """Process requests on the Rabbit tool channel
@@ -19,7 +22,7 @@ def process_requests():
     """
 
     try:
-        bot_channel, command, parameters = consume(config.TOOL_MANAGER_CHANNEL)
+        bot_channel, command, param = consume(config.TOOL_MANAGER_CHANNEL)
         #Test Command
         
 
@@ -32,22 +35,53 @@ def process_requests():
                 return
 
             if command == 'NEW_TOOL':
-                name = parameters.get('toolname')
-                description = parameters.get('description')
-                parameters = parameters.get('parameters')
+                name = param.get('toolname')
+                description = param.get('description')
+                parameters = param.get('parameters')
                 result = tool_registry.add_tool(name, description, parameters)
                 publish(result, bot_channel)
                 return
 
+            if command == 'TEST_TOOL':
+                name = param.get('toolname')
+                result = tool_registry.test_tool(name)
+                publish(result, bot_channel)
+                return
+
+            if command == 'EDIT_TOOL':
+                name = param.get('toolname')
+                description = param.get('description')
+                parameters = param.get('parameters')
+                changes = param.get('changes')
+                feedback = param.get('feedback')
+                result = tool_registry.edit_tool(name, description, parameters, changes, feedback)
+                publish(result, bot_channel)
+                return
+
+            if command == 'TUNE_TOOL':
+                name = param.get('toolname')
+                feedback = param.get('feedback')
+                result = tool_registry.tune_tool(name, feedback)
+                publish(result, bot_channel)
+                return
+
             if command == 'START_TOOL':
-                toolname = parameters.get('toolname')
+                toolname = param.get('toolname')
                 result = tool_registry.start_tool(toolname, bot_channel)
                 publish(result, bot_channel)
                 return
 
+            
+
             if command == 'STOP_TOOL':
-                parameters.get('toolname')
+                toolname = param.get('toolname')
                 result = tool_registry.stop_tool(bot_channel)
+                publish(result, bot_channel)
+                return
+            
+            if command == 'REMOVE_TOOL':
+                toolname = param.get('toolname')
+                result = tool_registry.delete_tool(toolname, bot_channel)
                 publish(result, bot_channel)
                 return
                     

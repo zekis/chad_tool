@@ -23,8 +23,10 @@ def consume(channel):
     tool_channel.queue_declare(queue=channel)
     method, properties, body = tool_channel.basic_get(queue=channel, auto_ack=True)
     tool_channel.close()
+
     if body:
         parameters = decode_message(body)
+        print(f"Parameters: {parameters}")
         return parameters
     else:
         return None
@@ -42,7 +44,7 @@ def decode_message(message):
         traceback.print_exc()
         return "prompt", f"error: {e}", None
 
-def publish(message, channel):
+def notify_bot(message, channel):
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
     message = encode_message(message)
     publish_channel = connection.channel()

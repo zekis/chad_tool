@@ -1,15 +1,17 @@
-import json
 
-# Example Plugin
+#Example Plugin
+import os
+
 def run(parameters):
     try:
-        # Logic goes here
+        # Load Parameters
         filename = parameters.get('filename')
-
-        # Read content from the file
+        
+        # Logic Goes Here
         with open(filename, 'r') as file:
             content = file.read()
-
+        
+        # Return Status
         return content
     except Exception as e:
         return str(e)

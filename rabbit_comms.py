@@ -20,7 +20,7 @@ def consume(channel):
 def decode_message(message):
     try:
         message = message.decode("utf-8")
-        print(f"DECODING: {message}")
+        print(f"MANAGER DECODING: {message}")
         message_dict = json.loads(message)
 
         bot_channel = message_dict.get('bot_channel')
@@ -47,6 +47,6 @@ def encode_message(message):
     response = {
         "message": message
     }
-    print(f"ENCODING: {response}")
+    print(f"MANAGER ENCODING: {response}")
     return json.dumps(response)
 
