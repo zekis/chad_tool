@@ -35,11 +35,12 @@ def decode_message(message):
 def publish(message, channel):
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
     message = encode_message(message)
+    print(f"channel: {channel}, message: {message}")
     publish_channel = connection.channel()
     publish_channel.basic_publish(exchange='',
                       routing_key=channel,
                       body=message)
-    print(message)
+    #print(message)
     publish_channel.close()
 
 def encode_message(message):

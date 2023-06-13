@@ -17,37 +17,56 @@ if __name__ == "__main__":
     tool_name = args.name
 
     subprocess.run(['pip', 'install', 'pipreqs'])
-    #subprocess.run("pip install pipreqs")
-    #os.chdir(f"tools/{tool_name}")
-    
     subprocess.run(['pipreqs', f'tools/{tool_name}', '--force'])
     print (f"pip install -r requirements.txt")
     subprocess.run(['pip', 'install', '-r',  f'tools/{tool_name}/requirements.txt'])
     
-
-
     notify_manager(tool_name, {'state': 'start'})
     notify_bot({'state': 'start'},out_chnl)
     #Listen to channel
     while True:
         parameters = consume(inp_chnl)
         if parameters:
-            try:
-                pkg = importlib.import_module(f'{tool_name}.main')
-                result = pkg.run(parameters)
-            except Exception as e:
-                # Handle the error
-                print(e)
-                error_message = str(e)
-                notify_bot({'result': error_message}, out_chnl)
-                notify_manager(tool_name, {'state': 'error', 'error': error_message})
+            print(f"TOOL - Got Parameters {parameters}")
+            if isinstance(parameters, dict):
+                break
             else:
-                # This block will be executed if no exception was thrown
-                notify_bot({'result': result}, out_chnl)
-                notify_bot({'state': 'finish'}, out_chnl)
-                notify_manager(tool_name, {'state': 'finish'})
-                break  
+                error = f"Not a DICT: {parameters}"
+                notify_bot({'result': error}, out_chnl)
+                #notify_manager(tool_name, {'state': 'error', 'error': error})
         time.sleep(0.5)
+    
+    #Load Module
+    try:
+        print(f"TOOL - Loading {tool_name} - {parameters}")
+        pkg = importlib.import_module(f'{tool_name}.main')
+        
+
+    except Exception as e:
+        # Handle the error
+        print(f"TOOL - Error loading tool {e}")
+        error_message = str(e)
+        notify_bot({'result': error_message}, out_chnl)
+        notify_manager(tool_name, {'state': 'error', 'error': error_message})
+        
+    #Run Tool
+    try:
+        print(f"TOOL - Running {tool_name} - {parameters}")
+        result = pkg.run(parameters)
+        notify_bot({'result': result}, out_chnl)
+    except Exception as e:
+        # Handle the error
+        print(f"TOOL - Error Running tool {e}")
+        error_message = str(e)
+        notify_bot({'result': error_message}, out_chnl)
+        notify_manager(tool_name, {'state': 'error', 'error': error_message})
+    
+    #Notify
+    notify_bot({'state': 'finish'}, out_chnl)
+    notify_manager(tool_name, {'state': 'finish'})
+        
+            
+        
     
 
     

@@ -3,3 +3,4 @@ test.txt
 __pycache__
 data/tool_registry.pkl
 main.bak
+data.json

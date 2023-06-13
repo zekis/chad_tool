@@ -37,7 +37,7 @@ def encode_manager_message(bot_channel, command, parameters=None):
         "command": command,
         "parameters": parameters
     }
-    print(f"TESTER - ENCODING: {response}")
+    print(f"TESTER ENCODING: {response}")
     return json.dumps(response)
 
 def encode_tool_message(parameters):
@@ -45,7 +45,7 @@ def encode_tool_message(parameters):
     response = {
         "parameters": parameters
     }
-    print(f"TESTER - ENCODING: {response}")
+    print(f"TESTER ENCODING: {response}")
     return json.dumps(response)
 
 #Consume tool messages
@@ -64,7 +64,7 @@ def consume(channel):
 def decode_message(message):
     try:
         message = message.decode("utf-8")
-        print(f"DECODING: {message}")
+        print(f"TESTER DECODING: {message}")
         message_dict = json.loads(message)
 
         message = message_dict.get('message')
@@ -74,14 +74,17 @@ def decode_message(message):
 
 
 
-def ai_test_tool(toolname, description, parameters, feedback=None):
+def ai_test_tool(toolname, description, parameters, feedback=None, values=None):
         bot_channel = "test"
-        
+        if values:
+            if isinstance(values, str):
+                values = json.loads(values)
+
         command_channel = f"CMD:{toolname}:{bot_channel}"
         response_channel = f"RES:{toolname}:{bot_channel}"
 
         file_path = f"tools/{toolname}/main.py"
-        print(f'Testing {file_path}')
+        print(f'TESTER - Testing {file_path}')
         if os.path.exists(file_path):
             # Logic Goes Here
             with open(file_path, 'r') as file:
@@ -98,7 +101,10 @@ def ai_test_tool(toolname, description, parameters, feedback=None):
             if response:
                 state = response.get('state')
                 if state=='start':
-                    values = ai_suggest_test_parameters(original, toolname, description, parameters)
+                    print(f"TESTER - Tool Started")
+                    if not values:
+                        print(f"TESTER - Parameters not provided. Using AI to create test parameters")
+                        values = ai_suggest_test_parameters(original, toolname, description, parameters)
                     #parameters = {'folder': 'tools'}
                     publish_to_tool(command_channel, toolname, values)
                     
@@ -109,31 +115,43 @@ def ai_test_tool(toolname, description, parameters, feedback=None):
                         if response:
                             result = response.get('result')
                             if result:
-                                review = ai_review_response(original, toolname, description, parameters, values, response, feedback)
-                                print(review)
-                                
-                                test_result = review.get('test_result', None)
-                                recommended_changes = review.get('recommended_changes', None)
+                                print(f"TESTER - Tool returned result size: {len(result)}")
+                                if isinstance(result, list) and result == []:
+                                    print("TESTER - Result returned an empty list")
+                                    test_result = "fail"
+                                    recommended_changes = "Result returned an empty list"
+                                if len(result) > 2000:
+                                    print("TESTER - Result too long")
+                                    test_result = "fail"
+                                    recommended_changes = "response too large. Alter the code to truncate or summarise the response to allow processing by the LLM"
+                                else:
+                                    print("TESTER - Using AI to verify results")
+                                    review = ai_review_response(original, toolname, description, parameters, values, response, feedback)
+                                    test_result = review.get('test_result', None)
+                                    recommended_changes = review.get('recommended_changes', None)
+                                    print(f"TESTER - Test {test_result}, {recommended_changes}")
                                 if test_result == 'pass':
                                     return True
                                 else:
                                     code = ai_edit_tool(original, toolname, description, parameters, recommended_changes, feedback)
                                     update_tool_code(toolname, code)
                                     return False
+                            
+                               
                         # Check if the elapsed time has exceeded 30 seconds
                         elapsed_time = time.time() - start_time
                         if elapsed_time > 30:
-                            print("Timed out waiting for response.")
+                            print("TESTER - Timed out waiting for response.")
                             return False
             # Check if the elapsed time has exceeded 30 seconds
             elapsed_time = time.time() - start_time
             if elapsed_time > 30:
-                print("Timed out waiting for tool to start.")
+                print("TESTER - Timed out waiting for tool to start.")
                 return False
 
 def update_tool_code(toolname, code):
-    file_path = f"tools/{toolname}/main.py"
-    backup_path = f"tools/{toolname}/main.bak"
+    file_path = f"tools/{toolname.lower()}/main.py"
+    backup_path = f"tools/{toolname.lower()}/main.bak"
 
     # Create a backup of the file
     shutil.copy(file_path, backup_path)

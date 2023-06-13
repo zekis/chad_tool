@@ -4,6 +4,7 @@ import subprocess
 import os
 import config
 import shutil
+import time
 from tool_builder import ai_new_tool, ai_edit_tool, ai_review_response, ai_suggest_test_parameters
 from tool_tester import ai_test_tool, roleback_tool_code
 
@@ -40,9 +41,10 @@ class Tool:
     
     def to_dict(self):
         return {
-            'name': self.name,
+            'name': self.name.lower(),
             'description': self.description,
-            'parameters': self.parameters
+            'parameters': self.parameters,
+            'test_result': self.test_result
         }
 
 class ToolRegistry:
@@ -50,39 +52,58 @@ class ToolRegistry:
         self.tools = []
         self.user_processes = {}
 
+    def cleanup(self):
+        #if path doesnt exist. delete the tool
+        #ensure tools are all lowercase
+        for tool in self.tools:
+            tool.name = tool.name.lower()
+            folder_path = f"tools/{tool.name}"
+            if not os.path.exists(folder_path):
+                print(f"Deleting tool {tool.name}")
+                self.delete_tool(tool.name)
+                
+        self.save_tools()
+
     def add_tool(self, name, description, parameters):
         #Register tool
         for tool in self.tools:
-            if tool.name == name:
-                raise ValueError(f"A tool with the name '{name}' already exists.")
+            if tool.name.lower() == name:
+                return(f"A tool with the name '{name}' already exists.")
 
-        self.tools.append(Tool(name, description, parameters))
-
+        
+        #if a tool is not registered then its path is fair game.
         folder_path = f"tools/{name}"
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)
+            time.sleep(1)
+        
+        os.makedirs(folder_path)
 
         file_path = f"tools/{name}/main.py"
-        if os.path.exists(file_path):
-            self.save_tools()
+        # if os.path.exists(file_path):
+        #     self.tools.append(Tool(name, description, parameters))
+        #     self.save_tools()
             #raise ValueError(f"The file '{file_path}' already exists.")
         
         code = ai_new_tool(template, name, description, parameters)
         # Instead of multiplying, write parameters to a file
         with open(file_path, 'w') as file:
             file.write(code)
+
+        self.tools.append(Tool(name, description, parameters))
         result = self.test_tool(name)
+        
         return f"'result': {result}, 'code': {code}"
         
     
-    def test_tool(self, toolname, feedback=None):
+    def test_tool(self, toolname, feedback=None, values=None):
         bot_channel = "test"
         for tool in self.tools:
-            if tool.name == toolname:
+            if tool.name.lower() == toolname:
                 count = 10
                 while count > 0:
-                    self.start_tool(tool.name, bot_channel)
-                    test_result = ai_test_tool(tool.name, tool.description, tool.parameters, tool.feedback)
+                    self.start_tool(tool.name.lower(), bot_channel)
+                    test_result = ai_test_tool(tool.name.lower(), tool.description, tool.parameters, tool.feedback, values)
                     if test_result:
                         tool.test_result = True
                         self.save_tools()
@@ -90,7 +111,7 @@ class ToolRegistry:
                     self.stop_tool(bot_channel)
                     count -= 1
                 test_result = False
-                roleback_tool_code(tool.name)
+                roleback_tool_code(tool.name.lower())
                 return "Tool test failed after 10 attempts"
         else:
             return "Tool not found"
@@ -100,31 +121,31 @@ class ToolRegistry:
     def edit_tool(self, name, description, parameters, changes, feedback):
         #Register tool
         for tool in self.tools:
-            if tool.name == name:
+            if tool.name.lower() == name:
                 #raise ValueError(f"A tool with the name '{name}' already exists.")
                 tool.description = description
                 tool.parameters = parameters
                 tool.feedback = feedback
                 #self.tools.append(Tool(name, description, parameters))
 
-                folder_path = f"tools/{name}"
+                folder_path = f"tools/{name.lower()}"
                 if not os.path.exists(folder_path):
                     os.makedirs(folder_path)
 
-                file_path = f"tools/{name}/main.py"
+                file_path = f"tools/{name.lower()}/main.py"
                 
                 if os.path.exists(file_path):
                     # Logic Goes Here
                     with open(file_path, 'r') as file:
                         content = file.read()
 
-                    code = ai_edit_tool(content, name, description, parameters, changes, tool.feedback)
+                    code = ai_edit_tool(content, name.lower(), description, parameters, changes, tool.feedback)
                     # Instead of multiplying, write parameters to a file
                     with open(file_path, 'w') as file:
                         file.write(code)
-                        return(f"{name} Tool Updated")
+                        return(f"{name.lower()} Tool Updated")
                     
-                    result = self.test_tool(name)
+                    result = self.test_tool(name.lower())
                     return f"'result': {result}, 'code': {code}"
                 return "File not found"
         return "Tool not found"
@@ -132,10 +153,11 @@ class ToolRegistry:
     def tune_tool(self, name, feedback):
         #Register tool
         for tool in self.tools:
-            if tool.name == name:
+            if tool.name.lower() == name.lower():
                 #raise ValueError(f"A tool with the name '{name}' already exists.")
                 tool.feedback = feedback
-                return "Feedback updated"
+                result = self.test_tool(name.lower(), feedback)
+                return result
                 #self.tools.append(Tool(name, description, parameters))
         return "Tool not found"
 
@@ -145,10 +167,10 @@ class ToolRegistry:
             #return(f"Tool is already running for user {user_id}")
 
         else:
-            command_channel = f"CMD:{toolname}:{user_id}"
-            response_channel = f"RES:{toolname}:{user_id}"
-            print(f"Starting process - tools/tool_wrapper.py  {toolname} {command_channel} {response_channel}")
-            process = subprocess.Popen(['python', "tools/tool_wrapper.py", toolname, command_channel, response_channel ])
+            command_channel = f"CMD:{toolname.lower()}:{user_id}"
+            response_channel = f"RES:{toolname.lower()}:{user_id}"
+            print(f"Starting process - tools/tool_wrapper.py  {toolname.lower()} {command_channel} {response_channel}")
+            process = subprocess.Popen(['python', "tools/tool_wrapper.py", toolname.lower(), command_channel, response_channel ])
             self.user_processes[user_id] = process
             return(f"Tool started for user {user_id}")
 
@@ -162,17 +184,20 @@ class ToolRegistry:
         else:
             return(f"No tool to stop for {user_id}")
 
-    def delete_tool(self, name, user_id):
-        self.stop_tool(user_id)
+    def delete_tool(self, name, user_id=None):
+        if user_id:
+            self.stop_tool(user_id)
         # Iterate through the list of tools
         try:
             for tool in self.tools:
                 # If the name matches, remove the tool from the list
-                if tool.name == name:
+                if tool.name.lower() == name.lower():
                     self.tools.remove(tool)
-                    folder_path = f"tools/{name}"
-                    shutil.rmtree(folder_path)
-                    return(f"Tool {name} removed.")
+                    
+                    folder_path = f"tools/{name.lower()}"
+                    if os.path.exists(folder_path):
+                        shutil.rmtree(folder_path)
+                        return(f"Tool {name} removed.")
                     
             return(f"Tool {name} not found.")
         except Exception as e:
@@ -188,6 +213,8 @@ class ToolRegistry:
         if os.path.exists(file_path):
             with open(file_path, 'rb') as f:
                 self.tools = pickle.load(f)
+        self.cleanup()
+        
 
     def to_json(self):
         if not self.tools:
