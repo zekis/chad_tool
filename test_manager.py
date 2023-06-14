@@ -47,8 +47,8 @@ def encode_tool_message(parameters):
 
 if __name__ == "__main__":
     bot_channel = "test"
-    
-    # command_channel = f"CMD:{toolname}:{bot_channel}"
+    toolname = 'filewriter'
+    command_channel = f"CMD:{toolname}:{bot_channel}"
     # response_channel = f"RES:{toolname}:{bot_channel}"
     
     # command = "NEW_TOOL"
@@ -65,14 +65,14 @@ if __name__ == "__main__":
     # toolname = 'listfiles'
     # parameters = {'toolname': toolname, 'description': 'list the files in the specified folder', 'parameters': ['folder']}
     # publish_to_manager(bot_channel, command, parameters)
-    command = "TUNE_TOOL"
-    toolname = 'filereader'
-    parameters = {'toolname': toolname, 'feedback': "successful test will return hello world from test.txt"}
-    publish_to_manager(bot_channel, command, parameters)
+    # command = "TUNE_TOOL"
+    # toolname = 'filewriter'
+    # parameters = {'toolname': toolname, 'feedback': "successful test will return hello world from test.txt"}
+    # publish_to_manager(bot_channel, command, parameters)
 
 
-    command = "TEST_TOOL"
-    toolname = 'filereader'
+    command = "START_TOOL"
+    
     parameters = {'toolname': toolname}
     publish_to_manager(bot_channel, command, parameters)
 
@@ -84,9 +84,9 @@ if __name__ == "__main__":
     # parameters = {'toolname': toolname}
     # publish_to_manager(bot_channel, command, parameters)
 
-    # time.sleep(2)
-    # parameters = {'folder': 'tools'}
-    # publish_to_tool(command_channel, toolname, parameters)
+    time.sleep(2)
+    parameters = {'toolname': toolname, 'filename': "test1.txt", "content": "hello world1"}
+    publish_to_tool(command_channel, toolname, parameters)
 
     # time.sleep(5)
 

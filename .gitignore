@@ -4,3 +4,6 @@ __pycache__
 data/tool_registry.pkl
 main.bak
 data.json
+*.pkl
+*.json
+*.pickle

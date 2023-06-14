@@ -67,31 +67,31 @@ class ToolRegistry:
     def add_tool(self, name, description, parameters):
         #Register tool
         for tool in self.tools:
-            if tool.name.lower() == name:
+            if tool.name.lower() == name.lower():
                 return(f"A tool with the name '{name}' already exists.")
 
         
         #if a tool is not registered then its path is fair game.
-        folder_path = f"tools/{name}"
+        folder_path = f"tools/{name.lower()}"
         if os.path.exists(folder_path):
             shutil.rmtree(folder_path)
             time.sleep(1)
         
         os.makedirs(folder_path)
 
-        file_path = f"tools/{name}/main.py"
+        file_path = f"tools/{name.lower()}/main.py"
         # if os.path.exists(file_path):
         #     self.tools.append(Tool(name, description, parameters))
         #     self.save_tools()
             #raise ValueError(f"The file '{file_path}' already exists.")
         
-        code = ai_new_tool(template, name, description, parameters)
+        code = ai_new_tool(template, name.lower(), description, parameters)
         # Instead of multiplying, write parameters to a file
         with open(file_path, 'w') as file:
             file.write(code)
 
-        self.tools.append(Tool(name, description, parameters))
-        result = self.test_tool(name)
+        self.tools.append(Tool(name.lower(), description, parameters))
+        result = self.test_tool(name.lower())
         
         return f"'result': {result}, 'code': {code}"
         
@@ -99,7 +99,7 @@ class ToolRegistry:
     def test_tool(self, toolname, feedback=None, values=None):
         bot_channel = "test"
         for tool in self.tools:
-            if tool.name.lower() == toolname:
+            if tool.name.lower() == toolname.lower():
                 count = 10
                 while count > 0:
                     self.start_tool(tool.name.lower(), bot_channel)
@@ -121,7 +121,7 @@ class ToolRegistry:
     def edit_tool(self, name, description, parameters, changes, feedback):
         #Register tool
         for tool in self.tools:
-            if tool.name.lower() == name:
+            if tool.name.lower() == name.lower():
                 #raise ValueError(f"A tool with the name '{name}' already exists.")
                 tool.description = description
                 tool.parameters = parameters
@@ -143,7 +143,7 @@ class ToolRegistry:
                     # Instead of multiplying, write parameters to a file
                     with open(file_path, 'w') as file:
                         file.write(code)
-                        return(f"{name.lower()} Tool Updated")
+                        #return(f"{name.lower()} Tool Updated")
                     
                     result = self.test_tool(name.lower())
                     return f"'result': {result}, 'code': {code}"
@@ -165,14 +165,13 @@ class ToolRegistry:
         if user_id in self.user_processes and self.user_processes[user_id].poll() is None:
             self.stop_tool(user_id)
             #return(f"Tool is already running for user {user_id}")
-
-        else:
-            command_channel = f"CMD:{toolname.lower()}:{user_id}"
-            response_channel = f"RES:{toolname.lower()}:{user_id}"
-            print(f"Starting process - tools/tool_wrapper.py  {toolname.lower()} {command_channel} {response_channel}")
-            process = subprocess.Popen(['python', "tools/tool_wrapper.py", toolname.lower(), command_channel, response_channel ])
-            self.user_processes[user_id] = process
-            return(f"Tool started for user {user_id}")
+    
+        command_channel = f"CMD:{toolname.lower()}:{user_id}"
+        response_channel = f"RES:{toolname.lower()}:{user_id}"
+        print(f"Starting process - tools/tool_wrapper.py   {toolname.lower()} {user_id} {command_channel} {response_channel}")
+        process = subprocess.Popen(['python', "tools/tool_wrapper.py", toolname.lower(), user_id, command_channel, response_channel ])
+        self.user_processes[user_id] = process
+        return(f"Tool started for user {user_id}")
 
     def stop_tool(self, user_id):
         if user_id in self.user_processes:
